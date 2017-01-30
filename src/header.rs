@@ -1,6 +1,7 @@
 use std::io::{Error,ErrorKind};
 use std::fmt;
 
+#[derive(Debug)]
 pub struct Header {
     key: String,
     val: String
@@ -19,7 +20,7 @@ impl Header {
     pub fn new(k: &str, v: &str) -> Self {
         Header {
             key: k.to_string(),
-            val: k.to_string()
+            val: v.to_string()
         }
     }
 

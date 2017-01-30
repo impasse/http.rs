@@ -1,8 +1,10 @@
 use std::io::*;
+use std::io::prelude::*;
 use std::net::TcpStream;
 use header::{Header, Headers};
 use prelude::Methods;
 
+#[derive(Debug)]
 struct AbstractRequest<T: Read> {
     request_uri: String,
     headers: Vec<Header>,
@@ -14,11 +16,20 @@ struct AbstractRequest<T: Read> {
     request_method: Methods,
 }
 
-struct RequestBody {}
+#[derive(Debug)]
+struct RequestBody {
+    stream: BufReader<TcpStream>,
+}
+
+impl RequestBody {
+    pub fn new(r: BufReader<TcpStream>) -> Self {
+        RequestBody { stream: r }
+    }
+}
 
 impl Read for RequestBody {
     fn read(&mut self, buf: &mut [u8]) -> Result<usize> {
-        Ok(0)
+        self.stream.read(buf)
     }
 }
 
@@ -39,27 +50,19 @@ impl Request {
         buf.clear();
         let mut headers = Headers::new();
         loop {
-            let result = stream.read_line(&mut buf);
-            if result.is_ok() {
-                if result.unwrap() != 0 {
-                    break;
-                } else {
-                    if let Some(valid_header) = Request::parse_header(&buf) {
-                        headers.push(valid_header);
-                    } else {
-                        continue;
-                    }
-                    buf.clear();
-                }
+            let result = stream.read_line(&mut buf).expect("error read request header");
+            if buf == "\r\n" {
+                break;
             } else {
-                panic!("error parse headers")
+                headers.push(Request::parse_header(&buf).unwrap());
             }
+            buf.clear();
         }
         Request {
             request_uri: request_uri,
             headers: headers,
             protocol: protocol,
-            body: None,
+            body: Some(RequestBody::new(stream)),
             query_string: None,
             server_port: local_port,
             remote_ip: remote_ip,
