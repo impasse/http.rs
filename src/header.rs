@@ -1,6 +1,7 @@
 use std::io::{Error,ErrorKind};
 use std::fmt;
 
+#[derive(Debug)]
 pub enum Headers {
     Allow,
     Authorization,

@@ -1,6 +1,6 @@
 extern crate httprs;
 
-use rustpp::server::*;
+use httprs::server::*;
 
 fn main(){
     let s = Server::new();
