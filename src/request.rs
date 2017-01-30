@@ -9,7 +9,7 @@ struct AbstractRequest<T: Read> {
     request_uri: String,
     headers: Vec<Header>,
     protocol: String,
-    body: Option<T>,
+    pub body: Option<T>,
     query_string: Option<String>,
     server_port: u16,
     remote_ip: String,
@@ -68,6 +68,11 @@ impl Request {
             remote_ip: remote_ip,
             request_method: method,
         }
+    }
+
+    //todo fix
+    fn body(&self) -> Option<RequestBody> {
+        self.body
     }
 
     fn parse_method(method: &str) -> Methods {

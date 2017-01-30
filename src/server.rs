@@ -19,6 +19,7 @@ impl Server {
                     {
                         let req = Request::from_tcp_stream(stream);
                         println!("{:?}", req);
+                        println!("body:{:?}",req.body);
                     }
                     // stream.write_all("HTTP/1.0 200 \
                     //                   OK\r\nConnection:close\r\nContent-Length:\
