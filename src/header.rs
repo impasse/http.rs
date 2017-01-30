@@ -1,42 +1,6 @@
 use std::io::{Error,ErrorKind};
 use std::fmt;
 
-#[derive(Debug)]
-pub enum Headers {
-    Allow,
-    Authorization,
-    ContentEncoding,
-    ContentLength,
-    Date,
-    Expires,
-    From,
-    IfModifiedSince,
-    LastModified,
-    Location,
-    Pragma,
-    Referer,
-    Server,
-    UserAgent,
-    WWWAuthenticate,
-    // additinal
-    Accept,
-    AcceptCharset,
-    AcceptEncoding,
-    AcceptLanguage,
-    ContentLanguage,
-    Link,
-    MIMEVersion,
-    RetryAfter,
-    Title,
-    URI
-}
-
-impl fmt::Display for Headers {
-    fn fmt(&self,f:&mut fmt::Formatter) -> fmt::Result{
-        write!(f,"{:?}",self)
-    }
-}
-
 pub struct Header {
     key: String,
     val: String
@@ -70,17 +34,15 @@ impl Header {
             Err(Error::from(ErrorKind::InvalidInput))
         }
     }
-//todo
-//    fn from(a:Header)-> Self{    }
 }
 
-trait HeaderFind{
+pub type Headers = Vec<Header>;
+
+trait FindHeader{
     fn find_by_str(&self,key:&str) -> Option<Header>;
-//    todo
-//    fn find(key:Headers)-> Option<Header>;
 }
 
-impl HeaderFind for Vec<Header>{
+impl FindHeader for Vec<Header>{
     fn find_by_str(&self,key:&str) -> Option<Header>{
         if let Some(b) = self.into_iter().find(|a|a.key==key.to_string()){
             Some(b.to_owned())

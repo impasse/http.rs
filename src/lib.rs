@@ -1,3 +1,5 @@
+#![feature(slice_patterns)]
+
 pub use prelude::*;
 
 pub use request::Request;
