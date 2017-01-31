@@ -1,4 +1,5 @@
 #![feature(slice_patterns)]
+#![feature(fnbox)]
 
 pub use prelude::*;
 

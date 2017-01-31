@@ -1,4 +1,4 @@
-#[derive(Debug,PartialEq,Eq)]
+#[derive(Debug,PartialEq,Eq,Clone)]
 pub enum Methods {
     HEAD,
     GET,
@@ -33,8 +33,8 @@ pub enum Methods {
 
 
 pub mod Status {
-    #[derive(Debug)]
-    pub struct HttpStatus(isize,&'static str);
+    #[derive(Debug,PartialEq,Eq,Copy,Clone)]
+    pub struct HttpStatus(pub isize,pub &'static str);
     pub static Ok:HttpStatus = HttpStatus(200,"Ok");
     pub static Created:HttpStatus = HttpStatus(201,"Created");
     pub static Accepted:HttpStatus = HttpStatus(202,"Accepted");

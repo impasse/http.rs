@@ -1,14 +1,26 @@
 use std::net::*;
 use std::io::prelude::*;
 use request::Request;
+use response::Response;
+use header::{Headers, Header};
+use prelude::Status;
+use std::boxed::FnBox;
 
 pub struct Server {
     bind: &'static str,
+    handles: Vec<Box<Fn(&mut Request) -> Option<Response>>>,
 }
 
 impl Server {
-    pub fn new() -> Self {
-        Server { bind: "127.0.0.1:3000" }
+    pub fn new(bind: &'static str) -> Self {
+        Server {
+            bind: bind,
+            handles: Vec::new(),
+        }
+    }
+
+    pub fn add_boxed_handle(&mut self, f: Box<Fn(&mut Request) -> Option<Response>>) {
+        self.handles.push(f);
     }
 
     pub fn serve(&self) {
@@ -16,15 +28,16 @@ impl Server {
         for stream in listener.incoming() {
             match stream {
                 Ok(mut stream) => {
-                    {
-                        let req = Request::from_tcp_stream(stream);
-                        println!("{:?}", req);
-                        println!("body:{:?}",req.body);
+                    let mut req = Request::from_tcp_stream(&stream);
+                    for handle in &self.handles {
+                        match handle(&mut req) {
+                            Some(res) => {
+                                res.send(&mut stream);
+                                stream.shutdown(Shutdown::Both);
+                            }
+                            None => (),
+                        }
                     }
-                    // stream.write_all("HTTP/1.0 200 \
-                    //                   OK\r\nConnection:close\r\nContent-Length:\
-                    //                   10\r\n\r\nHelloworld"
-                    //     .as_bytes());
                 }
                 Err(e) => panic!("{:?}", e),
             }

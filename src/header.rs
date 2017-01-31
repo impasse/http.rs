@@ -1,37 +1,29 @@
-use std::io::{Error,ErrorKind};
+use std::io::{Error, ErrorKind};
 use std::fmt;
+use std::ascii::AsciiExt;
 
-#[derive(Debug)]
+#[derive(Debug,PartialEq,Eq,Clone)]
 pub struct Header {
-    key: String,
-    val: String
-}
-
-impl Clone for Header{
-    fn clone(&self) -> Self{
-        Header {
-            key: self.key.to_owned(),
-            val: self.val.to_owned()
-        }
-    }
+    pub key: String,
+    pub val: String,
 }
 
 impl Header {
     pub fn new(k: &str, v: &str) -> Self {
         Header {
             key: k.to_string(),
-            val: v.to_string()
+            val: v.to_string(),
         }
     }
 
-    fn from_str(s: &str) -> Result<Self,Error> {
-        let kv:Vec<_> = s.split('=').collect();
-        if kv.len() == 2{
-            Ok(Header{
+    fn from_str(s: &str) -> Result<Self, Error> {
+        let kv: Vec<_> = s.split('=').collect();
+        if kv.len() == 2 {
+            Ok(Header {
                 key: kv[0].to_string(),
-                val: kv[1].to_string()
+                val: kv[1].to_string(),
             })
-        }else{
+        } else {
             Err(Error::from(ErrorKind::InvalidInput))
         }
     }
@@ -39,16 +31,29 @@ impl Header {
 
 pub type Headers = Vec<Header>;
 
-trait FindHeader{
-    fn find_by_str(&self,key:&str) -> Option<Header>;
+pub trait FindHeader {
+    fn find(&self, key: &str) -> Option<Header>;
 }
 
-impl FindHeader for Vec<Header>{
-    fn find_by_str(&self,key:&str) -> Option<Header>{
-        if let Some(b) = self.into_iter().find(|a|a.key==key.to_string()){
+impl FindHeader for Vec<Header> {
+    fn find(&self, key: &str) -> Option<Header> {
+        if let Some(b) = self.into_iter().find(|a| key.eq_ignore_ascii_case(a.key.as_str())) {
             Some(b.to_owned())
-        }else{
+        } else {
             None
+        }
+    }
+}
+
+#[macro_export]
+macro_rules! headers {
+    ($($a:expr=>$b:expr),*) => {
+        {
+            let mut tmp_headers = Headers::new();
+            $(
+                tmp_headers.push(Header::new($a,$b));
+            )*
+            tmp_headers
         }
     }
 }

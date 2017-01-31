@@ -1,23 +1,37 @@
-use header::Header;
 use std::io::prelude::*;
 use std::io::{Error, ErrorKind};
+use header::{Headers, Header};
+use prelude::*;
 
+type Body = Option<Vec<u8>>;
+
+#[derive(Debug,PartialEq,Eq,Clone)]
 pub struct Response {
-    headers: Vec<Header>,
-    body: String
+    status: Status::HttpStatus,
+    headers: Headers,
+    body: Body,
 }
 
-impl Write for Response {
-    fn write(&mut self, buf: &[u8]) -> Result<usize, Error> {
-        String::from_utf8(Vec::from(buf))
-            .map_err(|e| Error::from(ErrorKind::Other))
-            .map(|s| {
-                self.body.push_str(&s);
-                s.len()
-            })
+impl Response {
+    pub fn new(status: Status::HttpStatus, headers: Headers, body: Body) -> Self {
+        Response {
+            status: status,
+            headers: headers,
+            body: body,
+        }
     }
 
-    fn flush(&mut self) -> Result<(), Error> {
-        Ok(())
+    pub fn send<T>(&self, w: &mut T) -> Result<(), Error>
+        where T: Write
+    {
+        try!(w.write_fmt(format_args!("HTTP/1.0 {} {}\r\n", self.status.0, self.status.1)));
+        for header in &self.headers {
+            try!(w.write_fmt(format_args!("{}:{}\r\n", header.key, header.val)))
+        }
+        try!(w.write_fmt(format_args!("\r\n")));
+        match self.body {
+            Some(ref body) => Ok(try!(w.write_all(body.as_slice()))),
+            None => Ok(()),
+        }
     }
 }

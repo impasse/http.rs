@@ -1,78 +1,93 @@
 use std::io::*;
 use std::io::prelude::*;
 use std::net::TcpStream;
-use header::{Header, Headers};
+use header::{Header, Headers, FindHeader};
 use prelude::Methods;
+use std::fmt;
 
-#[derive(Debug)]
-struct AbstractRequest<T: Read> {
-    request_uri: String,
-    headers: Vec<Header>,
-    protocol: String,
-    pub body: Option<T>,
-    query_string: Option<String>,
-    server_port: u16,
-    remote_ip: String,
-    request_method: Methods,
+#[derive(Debug,Clone)]
+pub struct Request {
+    pub request_uri: String,
+    pub headers: Vec<Header>,
+    pub protocol: String,
+    pub body: Option<RequestBody>,
+    pub query_string: Option<String>,
+    pub server_port: u16,
+    pub remote_ip: String,
+    pub request_method: Methods,
 }
 
-#[derive(Debug)]
-struct RequestBody {
-    stream: BufReader<TcpStream>,
+#[derive(Debug,Clone)]
+pub struct RequestBody {
+    data: Vec<u8>,
 }
 
 impl RequestBody {
-    pub fn new(r: BufReader<TcpStream>) -> Self {
-        RequestBody { stream: r }
+    pub fn new(data: Vec<u8>) -> Self {
+        RequestBody { data: data }
     }
 }
 
-impl Read for RequestBody {
-    fn read(&mut self, buf: &mut [u8]) -> Result<usize> {
-        self.stream.read(buf)
+impl fmt::Display for RequestBody {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f,
+               "RequestBody({:?})",
+               String::from_utf8(self.data.to_owned()))
     }
 }
-
-
-pub type Request = AbstractRequest<RequestBody>;
 
 impl Request {
-    pub fn from_tcp_stream(stream: TcpStream) -> Self {
+    pub fn from_tcp_stream(stream: &TcpStream) -> Self {
         let remote_ip = stream.peer_addr().unwrap().ip().to_string();
         let local_port = stream.local_addr().unwrap().port();
         let mut stream = BufReader::new(stream);
         let mut buf = String::new();
         let read = stream.read_line(&mut buf);
-        let (method, request_uri, protocol) = read.ok()
-            .or_else(|| panic!("error read request line"))
-            .and_then(|_| Request::parse_request_line(&buf))
-            .unwrap_or_else(|| panic!("error parse request line"));
-        buf.clear();
-        let mut headers = Headers::new();
-        loop {
-            let result = stream.read_line(&mut buf).expect("error read request header");
-            if buf == "\r\n" {
-                break;
-            } else {
-                headers.push(Request::parse_header(&buf).unwrap());
-            }
+        if let Some((method, request_uri, protocol)) =
+            read.ok()
+                .and_then(|count| if count == 0 { None } else { Some(count) })
+                .and_then(|_| Request::parse_request_line(&buf)) {
             buf.clear();
-        }
-        Request {
-            request_uri: request_uri,
-            headers: headers,
-            protocol: protocol,
-            body: Some(RequestBody::new(stream)),
-            query_string: None,
-            server_port: local_port,
-            remote_ip: remote_ip,
-            request_method: method,
+            let query_string = Request::parse_query_string(&request_uri);
+            let mut headers = Headers::new();
+            loop {
+                let result = stream.read_line(&mut buf).expect("error read request header");
+                if buf == "\r\n" {
+                    break;
+                } else {
+                    headers.push(Request::parse_header(&buf).unwrap());
+                }
+                buf.clear();
+            }
+            let body = headers.find("Content-Length")
+                .and_then(|h| usize::from_str_radix(&h.val, 10).ok())
+                .map(|len| {
+                    let mut buf = vec![0u8;len];
+                    stream.read_exact(buf.as_mut());
+                    buf
+                })
+                .map(|vec| RequestBody::new(vec));
+            Request {
+                request_uri: request_uri,
+                headers: headers,
+                protocol: protocol,
+                body: body,
+                query_string: query_string,
+                server_port: local_port,
+                remote_ip: remote_ip,
+                request_method: method,
+            }
+        }else{
+            Request::from_tcp_stream(stream.into_inner())
         }
     }
 
-    //todo fix
-    fn body(&self) -> Option<RequestBody> {
-        self.body
+    fn parse_query_string(request_uri: &str) -> Option<String> {
+        let path: Vec<&str> = request_uri.splitn(2, '?').collect();
+        match path.as_slice() {
+            &[path, query] => Some(query.to_owned()),
+            _ => None,
+        }
     }
 
     fn parse_method(method: &str) -> Methods {
@@ -92,10 +107,11 @@ impl Request {
         let args: Vec<&str> = line.splitn(3, ' ')
             .map(|s| s.trim())
             .collect();
-        if let &[method, request_uri, protocol] = args.as_slice() {
-            Some((Request::parse_method(method), request_uri.to_string(), protocol.to_string()))
-        } else {
-            None
+        match args.as_slice() {
+            &[method, request_uri, protocol] => {
+                Some((Request::parse_method(method), request_uri.to_string(), protocol.to_string()))
+            }
+            _ => None,
         }
     }
 
@@ -103,10 +119,9 @@ impl Request {
         let args: Vec<&str> = line.splitn(2, ':')
             .map(|s| s.trim())
             .collect();
-        if let &[name, value] = args.as_slice() {
-            Some(Header::new(name, value))
-        } else {
-            None
+        match args.as_slice() {
+            &[name, value] => Some(Header::new(name, value)),
+            _ => None,
         }
     }
 }
