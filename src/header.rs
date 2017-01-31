@@ -50,6 +50,7 @@ macro_rules! headers {
     ($($a:expr=>$b:expr),*) => {
         {
             let mut tmp_headers = Headers::new();
+            tmp_headers.push(Header::new("Connection","close"));
             $(
                 tmp_headers.push(Header::new($a,$b));
             )*

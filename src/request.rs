@@ -17,7 +17,7 @@ pub struct Request {
     pub request_method: Methods,
 }
 
-#[derive(Debug,Clone)]
+#[derive(Clone)]
 pub struct RequestBody {
     data: Vec<u8>,
 }
@@ -29,6 +29,12 @@ impl RequestBody {
 }
 
 impl fmt::Display for RequestBody {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "{:}", String::from_utf8(self.data.to_owned()).unwrap())
+    }
+}
+
+impl fmt::Debug for RequestBody {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f,
                "RequestBody({:?})",
@@ -42,11 +48,15 @@ impl Request {
         let local_port = stream.local_addr().unwrap().port();
         let mut stream = BufReader::new(stream);
         let mut buf = String::new();
-        let read = stream.read_line(&mut buf);
-        if let Some((method, request_uri, protocol)) =
-            read.ok()
-                .and_then(|count| if count == 0 { None } else { Some(count) })
-                .and_then(|_| Request::parse_request_line(&buf)) {
+        let mut start = false;
+        while !start {
+            buf.clear();
+            start = stream.read_line(&mut buf)
+                .ok()
+                .and_then(|v| if v == 0 { None } else { Some(v) })
+                .is_some();
+        }
+        if let Some((method, request_uri, protocol)) = Request::parse_request_line(&buf) {
             buf.clear();
             let query_string = Request::parse_query_string(&request_uri);
             let mut headers = Headers::new();
@@ -77,8 +87,8 @@ impl Request {
                 remote_ip: remote_ip,
                 request_method: method,
             }
-        }else{
-            Request::from_tcp_stream(stream.into_inner())
+        } else {
+            panic!("Error while read request line");
         }
     }
 
