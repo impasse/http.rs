@@ -5,10 +5,13 @@ use response::Response;
 use header::{Headers, Header};
 use prelude::Status;
 use std::boxed::FnBox;
+use std::thread;
+
+type Handle = Box<Fn(&mut Request) -> Option<Response> + Send + Sync>;
 
 pub struct Server {
     bind: &'static str,
-    handles: Vec<Box<Fn(&mut Request) -> Option<Response>>>,
+    handles: Vec<Handle>,
 }
 
 impl Server {
@@ -19,7 +22,7 @@ impl Server {
         }
     }
 
-    pub fn add_boxed_handle(&mut self, f: Box<Fn(&mut Request) -> Option<Response>>) {
+    pub fn add_boxed_handle(&mut self, f: Handle) {
         self.handles.push(f);
     }
 
