@@ -1,6 +1,8 @@
 # http.rs
 A http/1.0 implemention for rust
 
+[![Build Status](https://travis-ci.org/lingmm/http.rs.svg?branch=master)](https://travis-ci.org/lingmm/http.rs)
+
 > Too much restriction, don't link it.
 
 ```rust
