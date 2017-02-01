@@ -3,7 +3,7 @@ use std::io::Error;
 use header::*;
 use prelude::*;
 
-type Body = Option<Vec<u8>>;
+pub type Body = Option<Vec<u8>>;
 
 pub enum ResponseState {
     Show(Response),
@@ -18,18 +18,18 @@ pub struct Response {
 }
 
 pub trait ToResponse {
-    fn from(self, body: Body) -> Response;
+    fn from<T: Into<Vec<u8>>>(self, body: T) -> Response;
 }
 
 impl ToResponse for status::HttpStatus {
-    fn from(self, body: Body) -> Response {
+    fn from<T: Into<Vec<u8>>>(self, body: T) -> Response {
         let mut tmp_headers = Headers::new();
         tmp_headers.push(Header::new("Connection", "close"));
         tmp_headers.push(Header::new("Content-Type", "text/html; charset=utf-8"));
         Response {
             status: self,
             headers: tmp_headers,
-            body: body,
+            body: Some(body.into()),
         }
     }
 }
@@ -59,9 +59,7 @@ impl Response {
         ResponseState::Skip
     }
 
-    pub fn send<T>(self, w: &mut T) -> Result<(), Error>
-        where T: Write
-    {
+    pub fn send<T: Write>(self, w: &mut T) -> Result<(), Error> {
         try!(w.write_fmt(format_args!("HTTP/1.0 {} {}\r\n", self.status.0, self.status.1)));
         for header in &self.headers {
             try!(w.write_fmt(format_args!("{}:{}\r\n", header.key, header.val)))

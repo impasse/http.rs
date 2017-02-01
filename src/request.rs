@@ -7,7 +7,7 @@ use std::fmt;
 #[derive(Debug,Clone)]
 pub struct Request {
     pub request_uri: String,
-    pub headers: Vec<Header>,
+    pub headers: Headers,
     pub protocol: String,
     pub body: Option<RequestBody>,
     pub query_string: Option<String>,
@@ -22,8 +22,8 @@ pub struct RequestBody {
 }
 
 impl RequestBody {
-    pub fn new(data: Vec<u8>) -> Self {
-        RequestBody { data: data }
+    pub fn new<T: Into<Vec<u8>>>(data: T) -> Self {
+        RequestBody { data: data.into() }
     }
 }
 

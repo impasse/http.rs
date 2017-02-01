@@ -18,8 +18,12 @@ impl Server {
         }
     }
 
-    pub fn add_boxed_handle(&mut self, f: Handle) {
-        self.handles.push(f);
+    pub fn add_boxed_handle(&mut self, h: Handle) {
+        self.handles.push(h);
+    }
+
+    pub fn add_handle<T: 'static + Fn(&mut Request) -> ResponseState + Send + Sync>(&mut self, h: T) {
+        self.handles.push(Box::new(h));
     }
 
     pub fn serve(&self) -> Result<(), Error> {

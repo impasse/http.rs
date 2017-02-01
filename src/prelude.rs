@@ -11,27 +11,6 @@ pub enum Methods {
     Extension(String)
 }
 
-// #[derive(Debug,Eq)]
-// pub enum Status {
-    // OK(200,"OK"),
-    // Created(201,"Created"),
-    // Accepted(202,"Accepted"),
-    // NoContent(204,"No Content"),
-    // MovePermanently(301,"Moved Permanently"),
-    // MoveTemporarily(302,"Moved Temporarily"),
-    // NotModified(304,"Not Modified"),
-    // BadRequest(400,"Bad Request"),
-    // Unauthorized(401,"Unauthorized"),
-    // Forbidden(403,"Forbidden"),
-    // NotFound(404,"Not Found"),
-    // InternalServerError(500,"Internal Server Error"),
-    // NotImplemented(501,"Not Implemented"),
-    // BadGateway(502,"Bad Gateway"),
-    // ServiceUnavailable(503,"Service Unavailable")
-// }
-
-
-
 pub mod status {
     #[derive(Debug,PartialEq,Eq,Copy,Clone)]
     pub struct HttpStatus(pub isize,pub &'static str);
