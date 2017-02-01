@@ -32,7 +32,7 @@ pub enum Methods {
 
 
 
-pub mod Status {
+pub mod status {
     #[derive(Debug,PartialEq,Eq,Copy,Clone)]
     pub struct HttpStatus(pub isize,pub &'static str);
     pub static Ok:HttpStatus = HttpStatus(200,"Ok");
@@ -51,3 +51,5 @@ pub mod Status {
     pub static BadGateway:HttpStatus = HttpStatus(502,"Bad Gateway");
     pub static ServiceUnavailable:HttpStatus = HttpStatus(503,"Service Unavailable");
 }
+
+pub use response::ToResponse;

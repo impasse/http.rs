@@ -1,5 +1,4 @@
 use std::io::{Error, ErrorKind};
-use std::fmt;
 use std::ascii::AsciiExt;
 
 #[derive(Debug,PartialEq,Eq,Clone)]
@@ -35,7 +34,7 @@ pub trait FindHeader {
     fn find(&self, key: &str) -> Option<Header>;
 }
 
-impl FindHeader for Vec<Header> {
+impl FindHeader for Headers {
     fn find(&self, key: &str) -> Option<Header> {
         if let Some(b) = self.into_iter().find(|a| key.eq_ignore_ascii_case(a.key.as_str())) {
             Some(b.to_owned())

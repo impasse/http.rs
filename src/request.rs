@@ -1,5 +1,4 @@
 use std::io::*;
-use std::io::prelude::*;
 use std::net::TcpStream;
 use header::{Header, Headers, FindHeader};
 use prelude::Methods;
@@ -61,7 +60,7 @@ impl Request {
             let query_string = Request::parse_query_string(&request_uri);
             let mut headers = Headers::new();
             loop {
-                let result = stream.read_line(&mut buf).expect("error read request header");
+                stream.read_line(&mut buf).expect("error read request header");
                 if buf == "\r\n" {
                     break;
                 } else {
@@ -71,10 +70,11 @@ impl Request {
             }
             let body = headers.find("Content-Length")
                 .and_then(|h| usize::from_str_radix(&h.val, 10).ok())
-                .map(|len| {
+                .and_then(|len| {
                     let mut buf = vec![0u8;len];
-                    stream.read_exact(buf.as_mut());
-                    buf
+                    stream.read_exact(buf.as_mut())
+                        .ok()
+                        .map(move |_| buf)
                 })
                 .map(|vec| RequestBody::new(vec));
             Request {
@@ -95,7 +95,7 @@ impl Request {
     fn parse_query_string(request_uri: &str) -> Option<String> {
         let path: Vec<&str> = request_uri.splitn(2, '?').collect();
         match path.as_slice() {
-            &[path, query] => Some(query.to_owned()),
+            &[_, query] => Some(query.to_owned()),
             _ => None,
         }
     }
