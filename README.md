@@ -15,6 +15,7 @@ use httprs::prelude::status::{Ok, NotFound};
 use httprs::server::Server;
 use httprs::response::Response;
 
+#[allow(unused_variables)]
 fn main() {
     let mut s = Server::new("127.0.0.1:3000");
     s.add_handle(|req| if req.request_uri == "/404" {
