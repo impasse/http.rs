@@ -1,5 +1,5 @@
 # http.rs
-A http/1.0 implemention for rust, inspire from play2
+A http implemention for rust, inspire from play2
 
 [![Build Status](https://travis-ci.org/lingmm/http.rs.svg?branch=master)](https://travis-ci.org/lingmm/http.rs)
 
@@ -13,30 +13,32 @@ use httprs::prelude::*;
 use httprs::header::*;
 use httprs::prelude::status::{Ok, NotFound};
 use httprs::server::Server;
-use httprs::request::Request;
 use httprs::response::Response;
 
-#[allow(unused_variables)]
 fn main() {
     let mut s = Server::new("127.0.0.1:3000");
-    s.add_handle(|req: &mut Request| if req.request_uri == "/404" {
+    s.add_handle(|req| if req.request_uri == "/404" {
         Response::new(NotFound,
                       headers!["Content-Type"=>"text/html;charset=utf-8","Server"=>"http.rs"],
                       None)
-            .show()
     } else {
         Response::skip()
     });
 
-    s.add_handle(|req: &mut Request| if req.request_method == Methods::POST {
+    s.add_handle(|req| if req.request_method == Methods::POST {
         Ok.from(r#"{"override":{"boy":"girl"}}"#)
             .with_headers(headers!["Content-Type"=>"application/json;charset=utf-8"])
-            .show()
     } else {
         Response::skip()
     });
 
-    s.add_handle(|req: &mut Request| Ok.from("<h1>你好，世界</h1>").show());
+    s.add_handle(|req| if req.request_uri == "/info" {
+        Ok.from(format!("{:?}", req))
+    } else {
+        Response::skip()
+    });
+
+    s.add_handle(|req| Ok.from("<h1>你好，世界</h1>"));
 
     s.serve().unwrap();
 }

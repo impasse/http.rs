@@ -1,15 +1,15 @@
 use std::net::*;
 use request::Request;
-use response::ResponseState;
+use response::{Response,ResponseState};
 use std::io::Error;
 use std::thread;
 use std::sync::{Arc, RwLock};
 
-type Handle = Box<Fn(&mut Request) -> ResponseState + Send + Sync + 'static>;
+type Handle = Fn(&mut Request) -> Response + Send + Sync + 'static;
 
 pub struct Server {
     bind: &'static str,
-    handles: Vec<Handle>,
+    handles: Vec<Box<Handle>>,
 }
 
 impl Server {
@@ -20,12 +20,12 @@ impl Server {
         }
     }
 
-    pub fn add_boxed_handle(&mut self, h: Handle) {
+    pub fn add_boxed_handle(&mut self, h: Box<Handle>) {
         self.handles.push(h);
     }
 
     pub fn add_handle<T>(&mut self, h: T)
-        where T: Fn(&mut Request) -> ResponseState + Send + Sync + 'static
+        where T: Fn(&mut Request) -> Response + Send + Sync + 'static
     {
         self.handles.push(Box::new(h));
     }
@@ -35,22 +35,21 @@ impl Server {
         let handles = Arc::new(RwLock::new(self.handles));
         for stream in listener.incoming() {
             let handles = handles.clone();
-            thread::spawn(move || {
-                match stream {
-                    Ok(mut stream) => {
-                        let mut req = Request::from_tcp_stream(&stream);
-                        for handle in &*handles.read().unwrap() {
-                            match handle(&mut req) {
-                                ResponseState::Show(res) => {
-                                    res.send(&mut stream).unwrap();
-									break;
-                                }
-                                ResponseState::Skip => (),
+            thread::spawn(move || match stream {
+                Ok(mut stream) => {
+                    let mut req = Request::from_tcp_stream(&stream);
+                    for handle in &*handles.read().unwrap() {
+                        let res = handle(&mut req);
+                        match res.state {
+                            ResponseState::Show => {
+                                res.send(&mut stream).unwrap();
+                                break;
                             }
+                            ResponseState::Skip => (),
                         }
                     }
-                    Err(e) => panic!("{:?}", e),
                 }
+                Err(e) => panic!("{:?}", e),
             });
         }
         Ok(())
