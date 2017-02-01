@@ -43,7 +43,7 @@ impl Server {
                             match handle(&mut req) {
                                 ResponseState::Show(res) => {
                                     res.send(&mut stream).unwrap();
-                                    // try!(stream.shutdown(Shutdown::Both));
+									break;
                                 }
                                 ResponseState::Skip => (),
                             }

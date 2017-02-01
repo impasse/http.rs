@@ -23,12 +23,9 @@ pub trait ToResponse {
 
 impl ToResponse for status::HttpStatus {
     fn from<T: Into<Vec<u8>>>(self, body: T) -> Response {
-        let mut tmp_headers = Headers::new();
-        tmp_headers.push(Header::new("Connection", "close"));
-        tmp_headers.push(Header::new("Content-Type", "text/html; charset=utf-8"));
         Response {
             status: self,
-            headers: tmp_headers,
+            headers: Headers::new(),
             body: Some(body.into()),
         }
     }
@@ -59,8 +56,14 @@ impl Response {
         ResponseState::Skip
     }
 
-    pub fn send<T: Write>(self, w: &mut T) -> Result<(), Error> {
+    pub fn send<T: Write>(mut self, w: &mut T) -> Result<(), Error> {
         try!(w.write_fmt(format_args!("HTTP/1.0 {} {}\r\n", self.status.0, self.status.1)));
+		if self.headers.find("Connection").is_none() {
+			self.headers.push(Header::new("Connection","close"));
+		}
+		if self.headers.find("Content-Type").is_none() {
+			self.headers.push(Header::new("Content-Type","text/html; charset=utf-8"));
+		}
         for header in &self.headers {
             try!(w.write_fmt(format_args!("{}:{}\r\n", header.key, header.val)))
         }
