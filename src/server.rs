@@ -4,8 +4,7 @@ use response::{Response,ResponseState};
 use std::io::Error;
 use std::thread;
 use std::sync::{Arc, RwLock};
-
-type Handle = Fn(&mut Request) -> Response + Send + Sync + 'static;
+use handle::Handle;
 
 pub struct Server {
     bind: &'static str,
