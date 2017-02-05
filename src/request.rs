@@ -104,7 +104,7 @@ impl Request {
     }
 
     fn parse_query_string(request_uri: &str) -> Option<String> {
-        let path: Vec<&str> = request_uri.splitn(2, '?').collect();
+        let path: Vec<&str> = request_uri.splitn(2, '?').map(|s| s.trim()).collect();
         match path.as_slice() {
             &[_, query] => Some(query.to_owned()),
             _ => None,
@@ -137,12 +137,6 @@ impl Request {
     }
 
     fn parse_header(line: &str) -> Option<Header> {
-        let args: Vec<&str> = line.splitn(2, ':')
-            .map(|s| s.trim())
-            .collect();
-        match args.as_slice() {
-            &[name, value] => Some(Header::new(name, value)),
-            _ => None,
-        }
+        line.parse::<Header>().ok()
     }
 }

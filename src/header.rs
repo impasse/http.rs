@@ -1,6 +1,7 @@
 use std::io::{Error, ErrorKind};
 use std::ascii::AsciiExt;
 use std::str::FromStr;
+use std::convert::AsRef;
 
 #[derive(Debug,PartialEq,Eq,Clone)]
 pub struct Header {
@@ -9,10 +10,10 @@ pub struct Header {
 }
 
 impl Header {
-    pub fn new(k: &str, v: &str) -> Self {
+    pub fn new<T: AsRef<str>>(k: T, v: T) -> Self {
         Header {
-            key: k.to_string(),
-            val: v.to_string(),
+            key: k.as_ref().to_string(),
+            val: v.as_ref().to_string(),
         }
     }
 }
@@ -20,14 +21,10 @@ impl Header {
 impl FromStr for Header{
     type Err = Error;
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        let kv: Vec<_> = s.split('=').collect();
-        if kv.len() == 2 {
-            Ok(Header {
-                key: kv[0].to_string(),
-                val: kv[1].to_string(),
-            })
-        } else {
-            Err(Error::from(ErrorKind::InvalidInput))
+        let kv: Vec<_> = s.splitn(2, ':').map(|s| s.trim()).collect();
+        match kv.as_slice() {
+            &[name,value] => Ok(Header::new(name,value)),
+            _ => Err(Error::from(ErrorKind::InvalidInput))
         }
     }
 }
@@ -35,11 +32,12 @@ impl FromStr for Header{
 pub type Headers = Vec<Header>;
 
 pub trait FindHeader {
-    fn find(&self, key: &str) -> Option<Header>;
+    fn find<T: AsRef<str>>(&self, key: T) -> Option<Header>;
 }
 
 impl FindHeader for Headers {
-    fn find(&self, key: &str) -> Option<Header> {
+    fn find<T: AsRef<str>>(&self, key: T) -> Option<Header> {
+        let key = key.as_ref();
         if let Some(b) = self.into_iter().find(|a| key.eq_ignore_ascii_case(a.key.as_str())) {
             Some(b.to_owned())
         } else {
