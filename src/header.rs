@@ -1,5 +1,6 @@
 use std::io::{Error, ErrorKind};
 use std::ascii::AsciiExt;
+use std::str::FromStr;
 
 #[derive(Debug,PartialEq,Eq,Clone)]
 pub struct Header {
@@ -14,8 +15,11 @@ impl Header {
             val: v.to_string(),
         }
     }
+}
 
-    fn from_str(s: &str) -> Result<Self, Error> {
+impl FromStr for Header{
+    type Err = Error;
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
         let kv: Vec<_> = s.split('=').collect();
         if kv.len() == 2 {
             Ok(Header {

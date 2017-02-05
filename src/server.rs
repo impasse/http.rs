@@ -6,13 +6,13 @@ use std::thread;
 use std::sync::{Arc, RwLock};
 use handle::Handle;
 
-pub struct Server {
-    bind: &'static str,
+pub struct Server<B> {
+    bind: B,
     handles: Arc<RwLock<Vec<Box<Handle>>>>,
 }
 
-impl Server {
-    pub fn new(bind: &'static str) -> Self {
+impl<B:ToSocketAddrs> Server<B> {
+    pub fn new(bind: B) -> Self {
         Server {
             bind: bind,
             handles: Arc::new(RwLock::new(Vec::new())),

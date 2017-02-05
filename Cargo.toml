@@ -1,6 +1,6 @@
 [package]
 name = "httprs"
-version = "0.0.0"
+version = "0.0.1"
 publish = false
 authors = ["shyling <i@shyling.com>"]
 
