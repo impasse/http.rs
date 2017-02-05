@@ -2,7 +2,9 @@ use std::io::*;
 use std::net::TcpStream;
 use header::{Header, Headers, FindHeader};
 use prelude::Methods;
+use prelude::status::*;
 use std::fmt;
+use std::result::Result as FullResult;
 
 #[derive(Debug,Clone)]
 pub struct Request {
@@ -15,6 +17,8 @@ pub struct Request {
     pub remote_ip: String,
     pub request_method: Methods,
 }
+
+const MAX_BODY_LENGTH : usize = 1024*1024*16;
 
 #[derive(Clone)]
 pub struct RequestBody {
@@ -42,12 +46,13 @@ impl fmt::Debug for RequestBody {
 }
 
 impl Request {
-    pub fn from_tcp_stream(stream: &TcpStream) -> Self {
-        let remote_ip = stream.peer_addr().unwrap().ip().to_string();
-        let local_port = stream.local_addr().unwrap().port();
+    pub fn from_tcp_stream(stream: &TcpStream) -> FullResult<Self,HttpStatus> {
+        let remote_ip = try!(stream.peer_addr().map_err(|_| InternalServerError)).ip().to_string();
+        let local_port = try!(stream.local_addr().map_err(|_| InternalServerError)).port();
         let mut stream = BufReader::new(stream);
         let mut buf = String::new();
         let mut start = false;
+        // skip empty line
         while !start {
             buf.clear();
             start = stream.read_line(&mut buf)
@@ -60,7 +65,7 @@ impl Request {
             let query_string = Request::parse_query_string(&request_uri);
             let mut headers = Headers::new();
             loop {
-                stream.read_line(&mut buf).expect("error read request header");
+                try!(stream.read_line(&mut buf).map_err(|_| BadRequest));
                 if buf == "\r\n" {
                     break;
                 } else {
@@ -68,16 +73,22 @@ impl Request {
                 }
                 buf.clear();
             }
-            let body = headers.find("Content-Length")
+            let body_size = headers.find("Content-Length")
                 .and_then(|h| usize::from_str_radix(&h.val, 10).ok())
-                .and_then(|len| {
-                    let mut buf = vec![0u8;len];
+                .unwrap_or(0);
+            if body_size > MAX_BODY_LENGTH {
+                return Err(BadRequest);
+            }
+            let body = match body_size {
+                0 => None,
+                body_size => {
+                    let mut buf = vec![0;body_size];
                     stream.read_exact(buf.as_mut())
-                        .ok()
-                        .map(move |_| buf)
-                })
-                .map(|vec| RequestBody::new(vec));
-            Request {
+                    .ok()
+                    .map(move |_| RequestBody::new(buf))
+                }
+            };
+            FullResult::Ok(Request {
                 request_uri: request_uri,
                 headers: headers,
                 protocol: protocol,
@@ -86,9 +97,9 @@ impl Request {
                 server_port: local_port,
                 remote_ip: remote_ip,
                 request_method: method,
-            }
+            })
         } else {
-            panic!("Error while read request line");
+            Err(BadRequest)
         }
     }
 

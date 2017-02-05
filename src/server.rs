@@ -1,6 +1,6 @@
 use std::net::*;
 use request::Request;
-use response::{Response,ResponseState};
+use response::{Response,ResponseState,ToResponse};
 use std::io::Error;
 use std::thread;
 use std::sync::{Arc, RwLock};
@@ -37,15 +37,21 @@ impl<B:ToSocketAddrs> Server<B> {
             let handles = self.handles.clone();
             thread::spawn(move || match stream {
                 Ok(mut stream) => {
-                    let mut req = Request::from_tcp_stream(&stream);
-                    for handle in &*handles.read().unwrap() {
-                        let res = handle(&mut req);
-                        match res.state {
-                            ResponseState::Show => {
-                                res.send(&mut stream).unwrap();
-                                break;
+                    match Request::from_tcp_stream(&stream) {
+                        Ok(mut req)=> {
+                            for handle in &*handles.read().unwrap() {
+                            let res = handle(&mut req);
+                            match res.state {
+                                ResponseState::Show => {
+                                    res.send(&mut stream).unwrap();
+                                    break;
+                                    }
+                                ResponseState::Skip => (),
+                                }
                             }
-                            ResponseState::Skip => (),
+                        },
+                        Err(status)=> {
+                            status.from(status.1).send(&mut stream).unwrap()
                         }
                     }
                 }

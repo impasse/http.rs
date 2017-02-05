@@ -63,7 +63,7 @@ impl Response {
     }
 
     pub fn send<T: Write>(self, w: &mut T) -> Result<(), Error> {
-        let status = self.status.unwrap();
+        let status = self.status.unwrap(); //cound not be None
         try!(w.write_fmt(format_args!("HTTP/1.0 {} {}\r\n", status.0, status.1)));
         let mut headers = self.headers.unwrap_or_else(|| Headers::new());
         if headers.find("Connection").is_none() {
