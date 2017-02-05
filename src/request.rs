@@ -29,7 +29,7 @@ impl RequestBody {
 
 impl fmt::Display for RequestBody {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "{:}", String::from_utf8(self.data.to_owned()).unwrap())
+        write!(f, "{}", String::from_utf8(self.data.to_owned()).unwrap())
     }
 }
 
