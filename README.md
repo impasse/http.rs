@@ -1,7 +1,7 @@
 # http.rs
 A http implemention for rust, inspire from play2
 
-[![Build Status](https://travis-ci.org/lingmm/http.rs.svg?branch=master)](https://travis-ci.org/lingmm/http.rs)
+[![Build Status](https://travis-ci.org/impasse/http.rs.svg?branch=master)](https://travis-ci.org/impasse/http.rs)
 
 ### example
 
